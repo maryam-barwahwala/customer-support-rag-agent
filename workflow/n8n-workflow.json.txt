@@ -1,0 +1,180 @@
+{
+  "name": "email customer support agent",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "filters": {}
+      },
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        0
+      ],
+      "id": "ID",
+      "name": "Gmail Trigger",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "ID",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.snippet }}",
+        "options": {
+          "systemMessage": "You are an AI Customer Support Agent for the company.\nYour responsibility is to read incoming customer emails, generate accurate responses\nusing the company knowledge base, and send a professional reply back to the customer\nusing the Gmail tool.\n====================\nCORE RULE\n====================\nYou must always use the Pinecone Chat Assistant (via the HTTP tool) to generate\nanswers.\nThe Pinecone Chat Assistant is the ONLY source of truth.\n====================\nWORKFLOW (MANDATORY)\n====================\n1. An email is received from a customer.\n2. You send the FULL email content to the Pinecone Chat Assistant using the HTTP tool.\n3. You receive the response from the Pinecone Chat Assistant.\n4. You rewrite the response into a clear, polite, and professional customer support email.\n5. You send the final email response back to the customer using the Gmail tool.\n====================\nSTRICT CONSTRAINTS\n====================\n- Do NOT add new information.\n- Do NOT guess or assume facts.\n- Do NOT hallucinate.\n- Do NOT answer directly without calling the Pinecone Chat Assistant.\n- Do NOT mention Pinecone, AI, embeddings, RAG, or internal systems.\nIf the Pinecone Chat Assistant does NOT provide a clear or sufficient answer:\n- Politely explain that the information is currently unavailable.\n- Ask the customer for more details OR inform them that a human support agent will\nfollow up.\n====================\nEMAIL WRITING GUIDELINES\n====================\n- Use a polite and friendly tone.\n- Be concise and easy to understand.\n- Address the customer’s question directly.\n- Avoid technical jargon unless the customer used it.\n- End the email with a supportive closing line.\n====================\nGMAIL TOOL INSTRUCTIONS\n====================\n- Use the Gmail tool to send the response.\n- Reply to the original sender’s email address.\n- Maintain the same email thread when replying.\n- Set the subject as a reply (e.g., \"Re: <original subject>\").\n- Use the drafted response as the email body.\n\n====================\nOUTPUT REQUIREMENTS\n====================\n- The final output must be the exact email body that will be sent.\n- Do NOT include analysis, reasoning, or system messages.\n- Do NOT include instructions or explanations."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        208,
+        0
+      ],
+      "id": "ID",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        80,
+        208
+      ],
+      "id": "ID",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "ID",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "reply",
+        "messageId": "={{ $json.id }}",
+        "emailType": "text",
+        "message": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Message', ``, 'string') }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.gmailTool",
+      "typeVersion": 2.2,
+      "position": [
+        544,
+        240
+      ],
+      "id": "ID",
+      "name": "Reply to a message in Gmail",
+      "webhookId": "ID",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "ID",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://prod-1-data.ke.pinecone.io/assistant/chat/customer-support",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Api-Key",
+              "value": "ID"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n\"messages\": [\n{\n\"role\": \"user\",\n\"content\": \"{{ $fromAI(\"searchQuery\") }}\"\n}\n],\n\"stream\": false,\n\"model\": \"gpt-4o\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.4,
+      "position": [
+        368,
+        208
+      ],
+      "id": "ID",
+      "name": "pinecone chat assistant"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Gmail Trigger": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reply to a message in Gmail": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "pinecone chat assistant": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "ID",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "ID"
+  },
+  "id": "ID",
+  "tags": []
+}
